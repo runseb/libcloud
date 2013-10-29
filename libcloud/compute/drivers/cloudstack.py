@@ -179,6 +179,18 @@ class CloudStackNetwork(object):
                    self.networkofferingid, self.zoneid, self.driver.name))
 
 
+class CloudStackNodeLocation(NodeLocation):
+    def __init__(self, id, name, country, driver, network_type):
+        super(CloudStackNodeLocation, self).__init__(id, name, country, driver)
+        self.network_type = network_type
+
+    def __repr__(self):
+        return (('<CloudStackNodeLocation: id=%s, name=%s, country=%s, '
+                 'network_type=%s driver=%s>')
+                % (self.id, self.name, self.country,
+                   self.network_type, self.driver.name))
+
+
 class CloudStackNodeDriver(CloudStackDriverMixIn, NodeDriver):
     """Driver for the CloudStack API.
 
@@ -231,6 +243,14 @@ class CloudStackNodeDriver(CloudStackDriverMixIn, NodeDriver):
         NodeDriver.__init__(self, key=key, secret=secret, secure=secure,
                             host=host, port=port)
 
+    def _check_advanced_zone(self):
+        """Check Zone type"""
+        if self.list_locations()[0].network_type != "Advanced":
+            raise Exception('The zone is not an Advanced zone' +
+                            'The API call being made requires advanced zone')
+        else:
+            return
+
     def list_images(self, location=None):
         args = {
             'templatefilter': 'executable'
@@ -258,7 +278,8 @@ class CloudStackNodeDriver(CloudStackDriverMixIn, NodeDriver):
         locs = self._sync_request('listZones')
         locations = []
         for loc in locs['zone']:
-            locations.append(NodeLocation(loc['id'], loc['name'], 'AU', self))
+            locations.append(CloudStackNodeLocation(loc['id'], loc['name'],
+                             'AU', self, loc['networktype']))
         return locations
 
     def list_nodes(self):
@@ -656,6 +677,7 @@ class CloudStackNodeDriver(CloudStackDriverMixIn, NodeDriver):
 
         :rtype: ``list`` of :class:`CloudStackAddress`
         """
+        self._check_advanced_zone()
         ips = []
 
         res = self._sync_request('listPublicIpAddresses')
@@ -677,6 +699,7 @@ class CloudStackNodeDriver(CloudStackDriverMixIn, NodeDriver):
 
         :rtype: :class:`CloudStackAddress`
         """
+        self._check_advanced_zone()
         if location is None:
             location = self.list_locations()[0]
 
@@ -694,6 +717,7 @@ class CloudStackNodeDriver(CloudStackDriverMixIn, NodeDriver):
 
         :rtype: ``bool``
         """
+        self._check_advanced_zone()
         res = self._async_request('disassociateIpAddress', id=address.id)
         return res['success']
 
@@ -703,6 +727,7 @@ class CloudStackNodeDriver(CloudStackDriverMixIn, NodeDriver):
 
         :rtype: ``list`` of :class:`CloudStackPortForwardingRule`
         """
+        self._check_advanced_zone()
         rules = []
         result = self._sync_request('listPortForwardingRules')
         if result != {}:
@@ -750,6 +775,7 @@ class CloudStackNodeDriver(CloudStackDriverMixIn, NodeDriver):
 
         :rtype: :class:`CloudStackPortForwardingRule`
         """
+        self._check_advanced_zone()
         args = {
             'ipaddressid': address.id,
             'protocol': protocol,
@@ -789,7 +815,7 @@ class CloudStackNodeDriver(CloudStackDriverMixIn, NodeDriver):
 
         :rtype: ``bool``
         """
-
+        self._check_advanced_zone()
         node.extra['port_forwarding_rules'].remove(rule)
         node.public_ips.remove(rule.address.address)
         res = self._async_request('deletePortForwardingRule', id=rule.id)
@@ -817,7 +843,7 @@ class CloudStackNodeDriver(CloudStackDriverMixIn, NodeDriver):
 
         :rtype:     :class:`CloudStackForwardingRule`
         """
-
+        self._check_advanced_zone()
         protocol = protocol.upper()
         if protocol not in ('TCP', 'UDP'):
             return None
@@ -849,7 +875,7 @@ class CloudStackNodeDriver(CloudStackDriverMixIn, NodeDriver):
 
         :rtype: ``bool``
         """
-
+        self._check_advanced_zone()
         node.extra['ip_forwarding_rules'].remove(rule)
         self._async_request('deleteIpForwardingRule', id=rule.id)
         return True

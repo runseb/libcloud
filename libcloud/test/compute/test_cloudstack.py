@@ -247,6 +247,20 @@ class CloudStackNodeDriverTest(unittest.TestCase, TestCaseMixin):
         self.assertEqual('1', location.id)
         self.assertEqual('Sydney', location.name)
 
+    def test_list_location_advanced(self):
+        CloudStackMockHttp.fixture_tag = 'advanced'
+        location = self.driver.list_locations()[0]
+        self.assertEqual('1', location.id)
+        self.assertEqual('Sydney', location.name)
+        self.assertEqual('Advanced', location.network_type)
+
+    def test_list_location_basic(self):
+        CloudStackMockHttp.fixture_tag = 'basic'
+        location = self.driver.list_locations()[0]
+        self.assertEqual('1', location.id)
+        self.assertEqual('CH-GV2', location.name)
+        self.assertEqual('Basic', location.network_type)
+
     def test_list_sizes(self):
         sizes = self.driver.list_sizes()
         self.assertEqual('Compute Micro PRD', sizes[0].name)
@@ -341,17 +355,30 @@ class CloudStackNodeDriverTest(unittest.TestCase, TestCaseMixin):
     def test_ex_list_public_ips(self):
         ips = self.driver.ex_list_public_ips()
         self.assertEqual(ips[0].address, '1.1.1.116')
+        
+        
+    def test_ex_list_public_ips_basic(self):
+        CloudStackMockHttp.fixture_tag = 'basic'
+        self.assertRaises(Exception, self.driver.ex_list_public_ips)
 
     def test_ex_allocate_public_ip(self):
         addr = self.driver.ex_allocate_public_ip()
         self.assertEqual(addr.address, '7.5.6.1')
         self.assertEqual(addr.id, '10987171-8cc9-4d0a-b98f-1698c09ddd2d')
 
+    def test_ex_allocate_public_ip_basic(self):
+        CloudStackMockHttp.fixture_tag = 'basic'
+        self.assertRaises(Exception, self.driver.ex_allocate_public_ip)
+
     def test_ex_release_public_ip(self):
         addresses = self.driver.ex_list_public_ips()
         res = self.driver.ex_release_public_ip(addresses[0])
         self.assertTrue(res)
-
+        
+    def test_ex_release_public_ip_basic(self):
+        CloudStackMockHttp.fixture_tag = 'basic'
+        self.assertRaises(Exception, self.driver.ex_release_public_ip)
+        
     def test_ex_create_port_forwarding_rule(self):
         node = self.driver.list_nodes()[0]
         address = self.driver.ex_list_public_ips()[0]
@@ -376,6 +403,10 @@ class CloudStackNodeDriverTest(unittest.TestCase, TestCaseMixin):
         self.assertEqual(rule.private_port, private_port)
         self.assertEqual(rule.private_end_port, private_end_port)
 
+    def test_ex_create_port_forwarding_rule_basic(self):
+        CloudStackMockHttp.fixture_tag = 'basic'
+        self.assertRaises(Exception, self.driver.ex_create_port_forwarding_rule)
+
     def test_ex_list_port_forwarding_rules(self):
         rules = self.driver.ex_list_port_forwarding_rules()
         self.assertEqual(len(rules), 1)
@@ -388,11 +419,19 @@ class CloudStackNodeDriverTest(unittest.TestCase, TestCaseMixin):
         self.assertEqual(rule.private_end_port, '34')
         self.assertEqual(rule.address.address, '1.1.1.116')
 
+    def test_ex_list_port_forwarding_rules_basic(self):
+        CloudStackMockHttp.fixture_tag = 'basic'
+        self.assertRaises(Exception, self.driver.ex_list_port_forwarding_rules)
+
     def test_ex_delete_port_forwarding_rule(self):
         node = self.driver.list_nodes()[0]
         rule = self.driver.ex_list_port_forwarding_rules()[0]
         res = self.driver.ex_delete_port_forwarding_rule(node, rule)
         self.assertTrue(res)
+
+    def test_ex_delete_port_forwarding_rule_basic(self):
+        CloudStackMockHttp.fixture_tag = 'basic'
+        self.assertRaises(Exception, self.driver.ex_delete_port_forwarding_rule)
 
 
 class CloudStackMockHttp(MockHttpTestCase):
